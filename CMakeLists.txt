@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (heimdallr_client)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(SIO_CLIENT_DIR ${CMAKE_CURRENT_LIST_DIR}/socket.io-client-cpp)
+set(SIO_CLIENT_DIR ${CMAKE_CURRENT_LIST_DIR}/lib/sio_client)
 
 include(ExternalProject)
 ExternalProject_Add(
