@@ -57,6 +57,10 @@ namespace hmdlr {
         connection_->on(msg_name, fn);
     }
     
+    void Client::removeListener(string msg_name) {
+        connection_->off(msg_name);
+    }
+    
     void Client::sendMessage(string msg_name, sio::message::ptr const& packet) {
         if (ready_) {
             printf("SEDNING PACKET");

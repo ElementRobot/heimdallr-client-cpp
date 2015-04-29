@@ -43,7 +43,6 @@ namespace hmdlr {
         void connect(void);
         void on(string, sio::socket::event_listener);
         void removeListener(string);
-        void removeListener(string, sio::socket::event_listener);
       
     protected:
         void sendMessage(string, sio::message::ptr const&);
