@@ -22,8 +22,10 @@ namespace hmdlr {
         virtual const char* what() const throw () {
             return msg_.c_str();
         }
+        
     protected:
         string msg_;
+        
     };
     
     struct delayed_message {
@@ -44,7 +46,7 @@ namespace hmdlr {
         void removeListener(string, sio::socket::event_listener);
       
     protected:
-        void sendMsg(string, sio::message::ptr const&);
+        void sendMessage(string, sio::message::ptr const&);
         string url_ = "https://heimdallr.co";
         string auth_source_ = "skyforge";
         
@@ -63,16 +65,20 @@ namespace hmdlr {
         void completed(string);
         void sendEvent(string, sio::message::ptr const&);
         void sendSensor(string, sio::message::ptr const&);
+        
     };
     
     class Consumer : public Client {
     public:
         Consumer(string);
-        void getState(string, vector<string>);
+        void sendControl(string, string, sio::message::ptr const&);
+        void sendControl(string, string, sio::message::ptr const&, bool);
+        void subscribe(string);
+        void unsubscribe(string);
+        void setFilter(string, sio::message::ptr const&);
+        void getState(string, sio::message::ptr const&);
         void joinStream(string);
         void leaveStream(string);
-        void setFilter(string, sio::message::ptr const&);
-        void sendControl(string, sio::message::ptr const&);
         
     };
 }

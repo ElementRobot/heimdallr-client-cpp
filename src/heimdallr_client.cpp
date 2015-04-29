@@ -57,7 +57,7 @@ namespace hmdlr {
         connection_->on(msg_name, fn);
     }
     
-    void Client::sendMsg(string msg_name, sio::message::ptr const& packet) {
+    void Client::sendMessage(string msg_name, sio::message::ptr const& packet) {
         if (ready_) {
             printf("SEDNING PACKET");
             connection_->emit(msg_name, packet);
@@ -76,7 +76,7 @@ namespace hmdlr {
         packet->get_map()["data"] = data;
         packet->get_map()["t"] = sio::string_message::create(now());
         
-        sendMsg("event", packet);
+        sendMessage("event", packet);
     }
     
     void Provider::sendSensor(string subtype, sio::message::ptr const& data) {
@@ -86,24 +86,113 @@ namespace hmdlr {
         packet->get_map()["data"] = data;
         packet->get_map()["t"] = sio::string_message::create(now());
         
-        sendMsg("sensor", packet);
+        sendMessage("sensor", packet);
     }
     
     void Provider::completed(string uuid) {
         sio::message::ptr packet = sio::object_message::create();
         
         packet->get_map()["subtype"] = sio::string_message::create("completed");
-        packet->get_map()["uuid"] = sio::string_message::create(uuid);
+        packet->get_map()["data"] = sio::string_message::create(uuid);
         packet->get_map()["t"] = sio::string_message::create(now());
         
-        sendMsg("event", packet);
+        sendMessage("event", packet);
     }
     
     Consumer::Consumer(string token) : Client(token, "/consumer") {}
     
-    void Consumer::getState(string uuid, vector<string> subtypes) { throw "Not Implemented"; };
-    void Consumer::joinStream(string uuid) { throw "Not Implemented"; };
-    void Consumer::leaveStream(string uuid) { throw "Not Implemented"; };
-    void Consumer::setFilter(string uuid, sio::message::ptr const& data) { throw "Not Implemented"; };
-    void Consumer::sendControl(string uuid, sio::message::ptr const& data) { throw "Not Implemented"; };
+    void Consumer::sendControl(string uuid, string subtype, sio::message::ptr const& data) {
+        sendControl(uuid, subtype, data, false);
+    };
+    
+    void Consumer::sendControl(string uuid, string subtype, sio::message::ptr const& data, bool persistent) {
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        packet->get_map()["subtype"] = sio::string_message::create(subtype);
+        packet->get_map()["data"] = data;
+        packet->get_map()["persistent"] = sio::int_message::create(int(persistent));
+        
+        sendMessage("control", packet);
+    };
+    
+    void Consumer::subscribe(string uuid) {
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        
+        sendMessage("subscribe", packet);
+    }
+    
+    void Consumer::unsubscribe(string uuid) {
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        
+        sendMessage("unsubscribe", packet);
+    }
+    
+    void Consumer::setFilter(string uuid, sio::message::ptr const& filter) {
+        if (filter->get_flag() != sio::message::flag_object) {
+            throw error("filter should be an object_message");
+        }
+        
+        sio::message::ptr packet = sio::object_message::create();
+        map<string, sio::message::ptr> filter_map = filter->get_map();
+        map<string, sio::message::ptr>::iterator event;
+        map<string, sio::message::ptr>::iterator sensor;
+        
+        event = filter_map.find("event");
+        sensor = filter_map.find("sensor");
+        
+        if (event == filter_map.end() && sensor == filter_map.end()) {
+            throw error("filter should contain event and/or sensor keys");
+        }
+        
+        if (
+            event != filter_map.end() &&
+                event->second->get_flag() != sio::message::flag_array
+        ) {
+            throw error("event filter should be an array_message");
+        }
+        
+        if (
+            sensor != filter_map.end() &&
+                sensor->second->get_flag() != sio::message::flag_array
+        ) {
+            throw error("sensor filter should be an array_message");
+        }
+        
+        filter_map["provider"] = sio::string_message::create(uuid);
+        sendMessage("setFilter", filter);
+    }
+    
+    void Consumer::getState(string uuid, sio::message::ptr const& subtypes) {
+        if (subtypes->get_flag() != sio::message::flag_array) {
+            throw error("subtypes should be an array_message");
+        }
+        
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        packet->get_map()["subtypes"] = subtypes;
+        
+        sendMessage("getState", packet);
+    };
+    
+    void Consumer::joinStream(string uuid) {
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        
+        sendMessage("joinStream", packet);
+    };
+    
+    void Consumer::leaveStream(string uuid) {
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        
+        sendMessage("leaveStream", packet);
+    };
 }

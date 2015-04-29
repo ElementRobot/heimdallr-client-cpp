@@ -31,4 +31,6 @@
 *.cmake
 CMakeCache.txt
 Makefile
-CMakeFIles/*
+CMakeFiles/*
+
+nbproject/*
