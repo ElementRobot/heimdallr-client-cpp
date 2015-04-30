@@ -77,7 +77,9 @@ struct ClientPairFixture : ClientFixture {
             );
         });
         consumer.on("event", [&](sio::event& ev) {
-            event_count++;
+            if (ev.get_message()->get_map()["subtype"]->get_string() != "connected") {
+                event_count++;
+            }
         });
         consumer.on("sensor", [&](sio::event& ev) {
             sensor_count++;
@@ -297,6 +299,7 @@ BOOST_AUTO_TEST_CASE ( interaction ) {
     ClientPairFixture f(PROVIDER_ONE_UUID, "schema-uuid", true);
     
     f.consumer.subscribe(PROVIDER_ONE_UUID);
+    sleepMS(WAIT_TIME);
     f.provider.sendEvent("stringTest", f.str_msg);
     f.provider.sendSensor("objectTest", f.obj_msg);
     f.consumer.sendControl(PROVIDER_ONE_UUID, "objectTest", f.obj_msg);
