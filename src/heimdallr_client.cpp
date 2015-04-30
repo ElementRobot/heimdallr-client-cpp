@@ -20,13 +20,13 @@ namespace hmdlr {
         token_ = token;
         connection_ = client_.socket(nsp);
         
-        connection_->on("hmdlr-error", [&](string const& name, sio::message::ptr const& data, bool is_ack, sio::message::ptr& ack_resp) {
-            string msg = data->get_map()["message"]->get_string();
+        connection_->on("hmdlr-error", [&](sio::event& ev) {
+            string msg = ev.get_message()->get_map()["message"]->get_string();
             
             throw error(msg.c_str());
         });
         
-        connection_->on("auth-success", [&](sio::event& _) {
+        connection_->on("auth-success", [&](sio::event& ev) {
             ready_ = true;
             
             for (unsigned i = 0; i < delayed_messages_.size(); i++) {
@@ -53,6 +53,11 @@ namespace hmdlr {
         client_.connect(url_);
     }
     
+    void Client::disconnect() {
+        connection_->close();
+        ready_ = false;
+    }
+    
     void Client::on(string msg_name, sio::socket::event_listener fn) {
         connection_->on(msg_name, fn);
     }
@@ -63,10 +68,8 @@ namespace hmdlr {
     
     void Client::sendMessage(string msg_name, sio::message::ptr const& packet) {
         if (ready_) {
-            printf("SEDNING PACKET");
             connection_->emit(msg_name, packet);
         } else {
-            printf("DELAYED PACKET");
             delayed_messages_.push_back(delayed_message(msg_name, packet));
         }
     }
@@ -106,16 +109,23 @@ namespace hmdlr {
     Consumer::Consumer(string token) : Client(token, "/consumer") {}
     
     void Consumer::sendControl(string uuid, string subtype, sio::message::ptr const& data) {
-        sendControl(uuid, subtype, data, false);
-    };
-    
-    void Consumer::sendControl(string uuid, string subtype, sio::message::ptr const& data, bool persistent) {
         sio::message::ptr packet = sio::object_message::create();
         
         packet->get_map()["provider"] = sio::string_message::create(uuid);
         packet->get_map()["subtype"] = sio::string_message::create(subtype);
         packet->get_map()["data"] = data;
-        packet->get_map()["persistent"] = sio::int_message::create(int(persistent));
+        
+        sendMessage("control", packet);
+    };
+    
+    void Consumer::sendControl(string uuid, string subtype, sio::message::ptr const& data, bool persistent) {
+        throw error("socket.io-client-cpp Does not support boolean values");
+        sio::message::ptr packet = sio::object_message::create();
+        
+        packet->get_map()["provider"] = sio::string_message::create(uuid);
+        packet->get_map()["subtype"] = sio::string_message::create(subtype);
+        packet->get_map()["data"] = data;
+//        packet->get_map()["persistent"] = sio::bool_message::create(persistent);
         
         sendMessage("control", packet);
     };
@@ -142,32 +152,31 @@ namespace hmdlr {
         }
         
         sio::message::ptr packet = sio::object_message::create();
-        map<string, sio::message::ptr> filter_map = filter->get_map();
         map<string, sio::message::ptr>::iterator event;
         map<string, sio::message::ptr>::iterator sensor;
         
-        event = filter_map.find("event");
-        sensor = filter_map.find("sensor");
+        event = filter->get_map().find("event");
+        sensor = filter->get_map().find("sensor");
         
-        if (event == filter_map.end() && sensor == filter_map.end()) {
+        if (event == filter->get_map().end() && sensor == filter->get_map().end()) {
             throw error("filter should contain event and/or sensor keys");
         }
         
         if (
-            event != filter_map.end() &&
+            event != filter->get_map().end() &&
                 event->second->get_flag() != sio::message::flag_array
         ) {
             throw error("event filter should be an array_message");
         }
         
         if (
-            sensor != filter_map.end() &&
+            sensor != filter->get_map().end() &&
                 sensor->second->get_flag() != sio::message::flag_array
         ) {
             throw error("sensor filter should be an array_message");
         }
         
-        filter_map["provider"] = sio::string_message::create(uuid);
+        filter->get_map()["provider"] = sio::string_message::create(uuid);
         sendMessage("setFilter", filter);
     }
     

@@ -41,6 +41,7 @@ namespace hmdlr {
     public:
        Client(string, string);
         void connect(void);
+        void disconnect(void);
         void on(string, sio::socket::event_listener);
         void removeListener(string);
       
@@ -48,13 +49,13 @@ namespace hmdlr {
         void sendMessage(string, sio::message::ptr const&);
         string url_ = "https://heimdallr.co";
         string auth_source_ = "skyforge";
+        vector<delayed_message> delayed_messages_;
         
     private:
         string token_;
         bool ready_;
         sio::client client_;
         sio::socket::ptr connection_;
-        vector<delayed_message> delayed_messages_;
       
     };
     
