@@ -48,7 +48,7 @@ namespace hmdlr {
     protected:
         void sendMessage(string, sio::message::ptr const&);
         string url_ = "https://heimdallr.co";
-        string auth_source_ = "skyforge";
+        string auth_source_ = "heimdallr";
         vector<delayed_message> delayed_messages_;
         
     private:
