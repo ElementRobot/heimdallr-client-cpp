@@ -20,13 +20,16 @@ namespace hmdlr {
         token_ = token;
         connection_ = client_.socket(nsp);
         
-        connection_->on("hmdlr-error", [&](sio::event& ev) {
+        // Windows can't tell the difference between the lambda
+        // function signatures
+        sio::socket::event_listener onError = [&](sio::event& ev) {
             string msg = ev.get_message()->get_map()["message"]->get_string();
             
             throw error(msg.c_str());
-        });
+        };
+        connection_->on("hmdlr-error", onError);
         
-        connection_->on("auth-success", [&](sio::event& ev) {
+        sio::socket::event_listener onAuth = [&](sio::event& ev) {
             ready_ = true;
             
             for (unsigned i = 0; i < delayed_messages_.size(); i++) {
@@ -36,7 +39,8 @@ namespace hmdlr {
                 );
             }
             delayed_messages_.clear();
-        });
+        };
+        connection_->on("auth-success", onAuth);
         
         client_.set_open_listener([&]() {
             sio::message::ptr packet = sio::object_message::create();

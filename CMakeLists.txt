@@ -6,11 +6,11 @@ set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 set(SIO_CLIENT_DIR ${CMAKE_CURRENT_LIST_DIR}/lib/sio_client)
 
 include(${SIO_CLIENT_DIR}/CMakeLists.txt)
-include_directories(heimdallr_client PRIVATE ${SIO_CLIENT_DIR}/src)
+include_directories(${SIO_CLIENT_DIR}/src)
 
 add_library(heimdallr_client STATIC ${SRC_DIR}/heimdallr_client.cpp)
 set_property(TARGET heimdallr_client PROPERTY CXX_STANDARD 11)
 
-target_link_libraries(
-    heimdallr_client boost_date_time boost_random boost_system sioclient
-)
+find_package(Boost ${BOOST_VER} REQUIRED COMPONENTS date_time)
+target_include_directories(heimdallr_client PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(heimdallr_client sioclient ${Boost_LIBRARIES})
